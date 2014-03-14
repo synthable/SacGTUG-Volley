@@ -1,4 +1,4 @@
-package org.gdgsacramento.volley;
+package org.gdgsacramento.volley.api;
 
 public class ApiResponse<T> {
 

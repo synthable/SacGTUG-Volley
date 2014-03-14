@@ -1,12 +1,9 @@
 package org.gdgsacramento.volley.ui;
 
-import org.gdgsacramento.volley.Fake;
+import org.gdgsacramento.volley.api.Fake;
+import org.gdgsacramento.volley.api.Fake.ApiListener;
 import org.gdgsacramento.volley.R;
 import org.gdgsacramento.volley.User;
-import org.gdgsacramento.volley.Fake.ApiListener;
-
-import com.android.volley.VolleyError;
-import com.android.volley.toolbox.NetworkImageView;
 
 import android.app.ListFragment;
 import android.content.Context;
@@ -14,16 +11,19 @@ import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.os.Bundle;
 import android.support.v4.widget.SimpleCursorAdapter;
-import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.ListView;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
 import android.widget.Toast;
 
-public class ListWithImagesFragment extends ListFragment {
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.NetworkImageView;
+
+public class ListWithImagesFragment extends ListFragment implements
+	OnItemClickListener {
 
 	private UsersListAdapter mListAdapter;
+	private MatrixCursor mCursor;
 
 	public static ListWithImagesFragment newInstance() {
 		return new ListWithImagesFragment();
@@ -33,7 +33,6 @@ public class ListWithImagesFragment extends ListFragment {
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
-		PullToRefreshListView list = new PullToRefreshListView(getActivity());
 		mListAdapter = new UsersListAdapter(getActivity(), null);
 		setListAdapter(mListAdapter);
 
@@ -47,55 +46,30 @@ public class ListWithImagesFragment extends ListFragment {
 				if(error != null) {
 					Toast.makeText(getActivity(), error.getMessage(), Toast.LENGTH_SHORT).show();
 				} else {
-					MatrixCursor cursor = new MatrixCursor(new String[] {
-						"_id", "name", "age", "picture"
+					mCursor = new MatrixCursor(new String[] {
+						"_id", "userId", "name", "age", "picture"
 					});
 					for(User user : users) {
-						cursor.addRow(new String[] {
+						mCursor.addRow(new String[] {
 							null,
-							user.getName(), String.valueOf(user.getAge()), user.getPicture()
+							String.valueOf(user.getId()),
+							user.getName(),
+							String.valueOf(user.getAge()),
+							user.getPicture()
 						});
 					}
-					mListAdapter.swapCursor(cursor);
+					mListAdapter.swapCursor(mCursor);
 				}
 			}
 		});
 	}
 
 	@Override
-	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-		//return super.onCreateView(inflater, container, savedInstanceState);
-		return new PullToRefreshListView(getActivity());
-	}
-
-	@Override
 	public void onResume() {
 		super.onResume();
+
+		getListView().setOnItemClickListener(this);
 	}
-	
-	private static class PullToRefreshListView extends ListView {
-		public PullToRefreshListView(Context context) {
-			super(context);
-			setOverScrollMode(OVER_SCROLL_ALWAYS);
-		}
-
-		@Override
-		protected boolean overScrollBy(int deltaX, int deltaY, int scrollX,
-				int scrollY, int scrollRangeX, int scrollRangeY,
-				int maxOverScrollX, int maxOverScrollY, boolean isTouchEvent) {
-			return super.overScrollBy(deltaX, deltaY, scrollX, scrollY, scrollRangeX,
-					scrollRangeY, maxOverScrollX, maxOverScrollY, isTouchEvent);
-		}
-
-		@Override
-		protected void onOverScrolled(int scrollX, int scrollY, boolean clampedX, boolean clampedY) {
-			super.onOverScrolled(scrollX, scrollY, clampedX, clampedY);
-
-			Log.v("scroll", "scrollX:" + scrollX + " scrollY:" + scrollY
-                    + " clampedX:" + clampedX + " clampedY:" + clampedX);
-		}
-	}
-
 
 	private static class UsersListAdapter extends SimpleCursorAdapter {
 
@@ -119,5 +93,17 @@ public class ListWithImagesFragment extends ListFragment {
 			NetworkImageView pictureView = (NetworkImageView) view.findViewById(R.id.list_item_image);
 			pictureView.setImageUrl(url, Fake.sImageLoader);
 		}
+	}
+
+	@Override
+	public void onItemClick(AdapterView<?> list, View view, int position, long id) {
+		mCursor.moveToPosition(position);
+		int userId = mCursor.getInt(mCursor.getColumnIndex("userId"));
+
+		getFragmentManager()
+			.beginTransaction()
+			.replace(R.id.fragment_container, UserDetailsFragment.newInstance(userId))
+			.addToBackStack(null)
+			.commit();
 	}
 }

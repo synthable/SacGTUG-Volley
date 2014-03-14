@@ -1,4 +1,4 @@
-package org.gdgsacramento.volley;
+package org.gdgsacramento.volley.api;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
@@ -13,6 +13,7 @@ import com.android.volley.Response.Listener;
 import com.android.volley.toolbox.HttpHeaderParser;
 
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Type;
 import java.util.Map;
 
 /**
@@ -20,7 +21,7 @@ import java.util.Map;
  */
 public class GsonRequest<T> extends Request<T> {
     private final Gson gson = new Gson();
-    private final Class<T> clazz;
+    private final Type clazz;
     private final Map<String, String> headers;
     private final Listener<T> listener;
 
@@ -31,7 +32,7 @@ public class GsonRequest<T> extends Request<T> {
      * @param clazz Relevant class object, for Gson's reflection
      * @param headers Map of request headers
      */
-    public GsonRequest(String url, Class<T> clazz, Map<String, String> headers,
+    public GsonRequest(String url, Type clazz, Map<String, String> headers,
             Listener<T> listener, ErrorListener errorListener) {
         super(Method.GET, url, errorListener);
         this.clazz = clazz;
@@ -54,7 +55,7 @@ public class GsonRequest<T> extends Request<T> {
         try {
             String json = new String(
                     response.data, HttpHeaderParser.parseCharset(response.headers));
-            return Response.success(
+            return (Response<T>) Response.success(
                     gson.fromJson(json, clazz), HttpHeaderParser.parseCacheHeaders(response));
         } catch (UnsupportedEncodingException e) {
             return Response.error(new ParseError(e));
